@@ -5,6 +5,14 @@ library(openair)
 library(data.table)
 library(ggplot2)
 library(readr)
+library(hydroTSM)
+library(ggplot2)
+library(chron)
+library(lubridate)
+library(dplyr)
+library(StreamMetabolism)
+
+########import functions first
 
 
 #ufp data input
@@ -53,9 +61,40 @@ MDnk_hour_size$datetime<-as.POSIXct(paste(MDnk_hour_size$datetime), format="%Y-%
 MDnk_hour<-merge(MDnk_hour_number, MDnk_hour_size, by="datetime", all=TRUE)
 MDnk_hour1<-merge(MDnk_hour, nk_wind_v1, by="datetime")
 
+dat_nk<-MDnk_hour1
+#################################################################
+##################add season information#########################
+
+dat_nk$season<-time2season(dat_nk$datetime, out.fmt="seasons")
+dat_nk$weekdays<-as.factor(ifelse(weekdays(dat_nk$datetime) %in% c("Saturday", "Sunday"), "weekend", "weekday"))
 
 
 
+dat_nk<-dat_nk %>%
+  mutate(peak = case_when(
+    is.weekend(as.Date(datetime)) ~ FALSE,
+    (hour(datetime)==6 & minute(datetime)>=30 | hour(datetime)>6) & 
+      (hour(datetime)==9 & minute(datetime)<=30 | hour(datetime)<9) ~ TRUE,
+    (hour(datetime)>=16 & hour(datetime)<=19) ~ TRUE,
+    TRUE ~ FALSE)
+  )
 
+
+
+Sys.setenv(TZ='GMT')
+
+for (i in 1: nrow(dat_nk)){
+  dat_nk[i,10]<-sunrise.set(51.521050, -0.213492, dat_nk[i,3], timezone="GB", num.days=1)[1,1]
+  
+  
+  dat_nk[i,11]<-sunrise.set(51.521050, -0.213492, dat_nk[i,3], timezone="GB", num.days=1)[1,2]
+}
+
+
+
+colnames(dat_nk)[c(10,11)]<-c("sunrise", "sunset")
+
+
+dat_nk$dayNight<-ifelse(dat_nk$datetime > dat_nk$datetime & dat_nk$datetime < dat_nk$sunset, 'day', 'night')
 
 
