@@ -11,6 +11,7 @@ library(chron)
 library(lubridate)
 library(dplyr)
 library(StreamMetabolism)
+library(RcppQuantuccia)
 
 ########import functions first
 
@@ -66,10 +67,22 @@ dat_nk<-MDnk_hour1
 ##################add season information#########################
 
 dat_nk$season<-time2season(dat_nk$datetime, out.fmt="seasons")
+
+
+
+############################################################################################
+#####################add weekdays and weekend info##########################################
+###########################################################################################
+
 dat_nk$weekdays<-as.factor(ifelse(weekdays(dat_nk$datetime) %in% c("Saturday", "Sunday"), "weekend", "weekday"))
 
 
 
+
+
+###############################################################################################
+#####################add peak and off-peak#######################################################
+###############################################################################################
 dat_nk<-dat_nk %>%
   mutate(peak = case_when(
     is.weekend(as.Date(datetime)) ~ FALSE,
@@ -79,9 +92,11 @@ dat_nk<-dat_nk %>%
     TRUE ~ FALSE)
   )
 
+##################################################################################################
+#####################add day and night info#######################################################
+##################################################################################################
 
-
-Sys.setenv(TZ='GMT')
+Sys.setenv(TZ='GMT') #change the system to UK to make sure the output is in the right timezone
 
 for (i in 1: nrow(dat_nk)){
   dat_nk[i,10]<-sunrise.set(51.521050, -0.213492, dat_nk[i,3], timezone="GB", num.days=1)[1,1]
@@ -96,5 +111,23 @@ colnames(dat_nk)[c(10,11)]<-c("sunrise", "sunset")
 
 
 dat_nk$dayNight<-ifelse(dat_nk$datetime > dat_nk$datetime & dat_nk$datetime < dat_nk$sunset, 'day', 'night')
+
+
+##################################################################################################
+#####################add business day info########################################################
+##################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
