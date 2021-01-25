@@ -12,6 +12,7 @@ library(lubridate)
 library(dplyr)
 library(StreamMetabolism)
 library(RQuantLib)
+library(corrplot)
 
 
 Sys.setenv(TZ='GMT') 
@@ -323,7 +324,7 @@ dat_st$wdays<-weekdays(dat_st$day)
 dat_st$hours<-hour(dat_st$datetime)
 
 
-
+dat_st
 
 ###############################################################################################
 ########wenlock road  ufp data input###############################################################
@@ -443,4 +444,104 @@ ggplot(data=hrs, aes(x=hours, y=number, color=station))+stat_smooth(method="gam"
 hrs<-rbind(dat_nk_htr[,c(2, 18,19)], dat_st[,c(2, 18,19)], dat_wl[,c(2, 18,19)])
 
 wdays<-rbind(dat_nk_htr[,c(2, 17,19)], dat_st[,c(2, 17,19)], dat_wl[,c(2, 17,19)])
+
+########################################################################################
+
+
+timeVariation(dat_three,date="datetime", pollutant="number", group="type", 
+              key=list(rep=FALSE,
+                group=list(c("N", "S", "W"))))
+
+
+
+ggplot(dat_three, aes(x=type, y=number))+geom_boxplot()
+
+summary_three<-dat_three %>% dplyr::group_by(type) %>% 
+  dplyr::summarize_at(vars(number,size), c("mean"=mean, "max"=max, "min"=min,p_funs))
+
+p<-c(0.05,0.25,0.75,0.95)
+
+p_names <- map_chr(p, ~paste0(.x*100, "%"))
+
+p_funs <- map(p, ~partial(quantile, probs = .x, na.rm = TRUE)) %>% 
+  set_names(nm = p_names)
+
+p_funs
+## $`20%`
+## function (...) 
+## quantile(probs = .x, na.rm = TRUE, ...)
+## <environment: 0x7fcf50757430="">
+## 
+## $`50%`
+## function (...) 
+## quantile(probs = .x, na.rm = TRUE, ...)
+## <environment: 0x7fcf50762c30="">
+## 
+## $`80%`
+## function (...) 
+## quantile(probs = .x, na.rm = TRUE, ...)
+## <environment: 0x7fcf51148830=""></environment:></environment:></environment:>
+#####################################################################################
+
+
+colnames(dat_nk_htr)[7:8]<- c("wd","ws")
+
+colnames(dat_st)[7:8]<- c("wd","ws")
+
+colnames(dat_wl)[7:8]<- c("wd","ws")
+
+colnames(dat_three)[7:8]<- c("wd","ws")
+
+dat_three<-rbind(dat_nk_htr,dat_st,dat_wl)
+
+polarPlot(dat_three, pollutant ="number", type="type")
+
+png('tr_tst2.png',width = 3.25,height= 3.25,units = "in",
+    res = 1200,bg = "transparent")
+
+polarPlot(dat_nk_htr, pollutant ="number")
+
+dev.off()
+
+
+
+img1 <- system.file("tr_tst2.png", package = "png")
+
+
+
+
+
+leaflet() %>% 
+  addProviderTiles("OpenStreetMap.HOT") %>%
+  setView(-0.213492, 51.521050, zoom = 11) %>%
+  addLogo("tr_tst2.png", src="local", position = "bottomleft",
+          offset.x = 200,
+          offset.y = 40,
+          width = 400,
+          height = 400)
+Lat <- c(33.74401,33.82377,41.78798,40.767309,32.88153,39.148492,33.45444,35.2406,29.935842,29.44838,47.714965 )
+Lon <- c(-84.56032,-118.2668,-87.7738,-73.978308,-96.64601,-76.796211,-112.32401,-81.04028,-95.398436,-98.39908,-122.127166 )
+
+leaflet() %>% 
+  addProviderTiles(providers$OpenStreetMap.HOT)%>%
+  addMarkers(-0.213492, 51.521050,  icon = list(
+    iconUrl = 'https://i.ibb.co/ZJR4QFQ/tr-tst2.png',
+    iconSize = c(450,450)
+  ))
+
+leaflet() %>% addTiles() %>% setView(-0.213492, 51.521050, zoom = 7) %>% addWMSTiles(
+  "https://tile.jawg.io/jawg-streets/{z}/{x}/{y}.png?access-token=gJbUvEOA9448D9ElgBwLa9oRyRcFNbtJF1LaK5TfMCFHuWpiEq3cs9kJBRPlXfMl",
+  layers = "1",
+  options = WMSTileOptions(format = "image/png", transparent = TRUE),
+  attribution = "OpenStreetMap") %>%
+  addMarkers(-0.213492, 51.521050,  icon = list(
+    iconUrl = 'https://i.ibb.co/ZJR4QFQ/tr-tst2.png',
+    iconSize = c(450,450)
+  ))
+
+
+
+
+
+
 
