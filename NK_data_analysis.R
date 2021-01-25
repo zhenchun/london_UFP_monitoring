@@ -13,7 +13,9 @@ library(dplyr)
 library(StreamMetabolism)
 library(RQuantLib)
 library(corrplot)
-
+library(leaflet)
+library(mapview)
+library(leafem)
 
 Sys.setenv(TZ='GMT') 
 
@@ -38,9 +40,11 @@ MD_NK<-rbindlist(MD_NK, fill=TRUE) #bind list by rows by times
 
 #wind data 
 #import north kensington data
-nk_wind <- read_csv("C:/Users/zy125/Box Sync/PhD/London/monitoring paper/AQDH.csv", col_types = cols(Date = col_date(format = "%d/%m/%Y"), 
+nk_wind <- read_csv("C:/Users/zy125/Box Sync/PhD/London/monitoring paper/R/AQDH.csv", col_types = cols(Date = col_date(format = "%d/%m/%Y"), 
             Time = col_time(format = "%H:%M:%S")),skip = 4)
 
+
+heathrow_airport_mete_data <- read_csv("C:/Users/zy125/Box Sync/PhD/London/monitoring paper/R/heathrow_airport_mete_data.csv",col_types = cols(time = col_date(format = "%m/%d/%Y"),time_local = col_time(format = "%H")))
 heathrow$datetime<-as.POSIXct(paste(heathrow$time, heathrow$time_local))
 colnames(nk_wind)<-c("date","time","wd","s1","ws","s2","tem","s3","datetime")
 nk_wind_v1<-nk_wind[,c(9,3,5,7)]
@@ -192,7 +196,7 @@ dat_nk_htr$hours<-hour(dat_nk_htr$datetime)
 ##############################################################################################
 
 
-nk_pm25<- read.csv("C:/Users/zy125/Box Sync/PhD/London/monitoring paper/NK_pm25.csv",skip = 4)
+nk_pm25<- read.csv("C:/Users/zy125/Box Sync/PhD/London/monitoring paper/R/NK_pm25.csv",skip = 4)
 nk_pm25$datetime<-as.POSIXct(paste(nk_pm25$Date, nk_pm25$Time), format="%d/%m/%Y %H:%M:%S")
 colnames(nk_pm25)<-c("date1","time","PM2.5","Status","datetime")
 nk_pm25<-nk_pm25[,c(5,3)]
@@ -438,19 +442,30 @@ dat_wl$hours<-hour(dat_wl$datetime)
 
 ################################################################plot
 
-ggplot(data=hrs, aes(x=hours, y=number, color=station))+stat_smooth(method="gam", formula=y~s(x), size=1)+
-  scale_x_continuous(breaks=seq(0,24,3))+theme_classic()
+
 
 hrs<-rbind(dat_nk_htr[,c(2, 18,19)], dat_st[,c(2, 18,19)], dat_wl[,c(2, 18,19)])
 
 wdays<-rbind(dat_nk_htr[,c(2, 17,19)], dat_st[,c(2, 17,19)], dat_wl[,c(2, 17,19)])
 
+
+ggplot(data=hrs, aes(x=hours, y=number, color=station))+stat_smooth(method="gam", formula=y~s(x), size=1)+
+  scale_x_continuous(breaks=seq(0,24,3))+theme_classic()
+
 ########################################################################################
 
+dat_nk_htr$type<-"NK"
 
-timeVariation(dat_three,date="datetime", pollutant="number", group="type", 
-              key=list(rep=FALSE,
-                group=list(c("N", "S", "W"))))
+dat_st$type<-"ST"
+
+dat_wl$type<-"WL"
+
+
+dat_three<-rbind(dat_nk_htr,dat_st, dat_wl)
+
+colnames(dat_three)[1]<-"date"
+
+timeVariation(dat_three, pollutant="number", group="type")
 
 
 
@@ -530,14 +545,14 @@ leaflet() %>%
   ))
 
 leaflet() %>% addTiles() %>% setView(-0.213492, 51.521050, zoom = 7) %>% addWMSTiles(
-  "https://tile.jawg.io/jawg-streets/{z}/{x}/{y}.png?access-token=gJbUvEOA9448D9ElgBwLa9oRyRcFNbtJF1LaK5TfMCFHuWpiEq3cs9kJBRPlXfMl",
+  "https://tile.jawg.io/jawg-light/{z}/{x}/{y}.png?access-token=BuuE1vh9urg3X2U6daWCy49RuKiZqSwxJuUeejoGWUjb0iUHFD3WlgIYAnMzvWjx&lang=en",
   layers = "1",
   options = WMSTileOptions(format = "image/png", transparent = TRUE),
   attribution = "OpenStreetMap") %>%
   addMarkers(-0.213492, 51.521050,  icon = list(
     iconUrl = 'https://i.ibb.co/ZJR4QFQ/tr-tst2.png',
     iconSize = c(450,450)
-  ))
+  ))%>% addScaleBar() %>% addLogo("na.png", src="local", position = "bottomleft")
 
 
 
